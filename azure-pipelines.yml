@@ -1,0 +1,63 @@
+trigger:
+- master
+
+jobs:
+
+- job: Pipeline
+  strategy:
+    matrix:
+      linux:
+        python.version: '3.7'
+        imageName: 'ubuntu-16.04'
+    maxParallel: 4
+
+  pool:
+    vmImage: $(imageName)
+
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '$(python.version)'
+      architecture: 'x64'
+
+  - task: 1ESLighthouseEng.PipelineArtifactCaching.RestoreAndSaveCacheV1.RestoreAndSaveCache@1
+    inputs:
+      keyfile: 'poetry.lock'
+      targetfolder: '.venv'
+      vstsFeed: '$(CacheArtifactFeedId)'
+    displayName: 'PyPI Cache'
+
+  - script: |
+      pip install poetry
+      poetry config settings.virtualenvs.in-project true
+      poetry config settings.virtualenvs.path .venv
+      poetry install
+    displayName: 'Install dependencies'
+
+  - script: 'poetry run pytest -s -ra --junitxml=junit/test-results.xml tests'
+    displayName: Run tests
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFiles: '**/test-results.xml'
+      testRunTitle: 'Python $(python.version)'
+    condition: succeededOrFailed()
+    displayName: Publish test results
+
+    # In lieu of getting logs as attachments on the test summary, we
+    # publish as artifacts.
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: 'test_logs_$(Agent.OS)'
+      targetPath: logs/
+    condition: succeededOrFailed()
+    displayName: Publish logs
+
+  - script: poetry build
+    displayName: Build
+  
+  - task: PublishPipelineArtifact@0
+    inputs:
+      artifactName: artifacts
+      targetPath: dist/
+    displayName: Publish artifacts
