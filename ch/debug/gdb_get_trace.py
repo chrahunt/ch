@@ -8,15 +8,13 @@ from pathlib import Path
 
 import requests
 
+from more_itertools import flatten
+
 
 python_gdb_url = os.environ.get(
     'PYTHON_GDB_URL',
     'https://raw.githubusercontent.com/python/cpython/master/Tools/gdb/libpython.py',
 )
-
-
-def flatten(iterable):
-    return list(chain.from_iterable(iterable))
 
 
 def get_python_gdb(pid):
