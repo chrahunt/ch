@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import sys
@@ -9,6 +10,9 @@ from pathlib import Path
 import requests
 
 from more_itertools import flatten
+
+
+logger = logging.getLogger(__name__)
 
 
 python_gdb_url = os.environ.get(
@@ -37,6 +41,11 @@ def get_python_gdb(pid):
 
 def run_python_gdb(pid, commands):
     attach_args = [
+        # Avoid warning in case there is actually a python-gdb.py in the
+        # correct place, we manually source it later.
+        ['-ex', 'set auto-load no'],
+        # Use this as the executable file.
+        ['-ex', f'file /proc/{pid}/exe'],
         ['-ex', f'attach {pid}'],
     ]
 
@@ -47,8 +56,6 @@ def run_python_gdb(pid, commands):
     command_args = [['-ex', c] for c in commands]
     args = [
         'gdb',
-        # Use this as the executable file.
-        '--exec', f'/proc/{pid}/exe',
         # No introductory message.
         '--batch',
         # No .gdbinit.
@@ -59,6 +66,7 @@ def run_python_gdb(pid, commands):
         '-ex', 'set confirm off',
         '-ex', 'quit',
     ]
+    logger.debug('Running %s', args)
     result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return result.stdout.decode('utf-8')
 

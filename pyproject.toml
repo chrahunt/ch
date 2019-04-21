@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ch"
-version = "0.1.0"
+version = "0.1.2"
 description = "utils"
 authors = ["Chris Hunt <chrahunt@gmail.com>"]
 license = "MIT"
